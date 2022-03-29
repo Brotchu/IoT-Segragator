@@ -21,11 +21,12 @@ logger = logging.getLogger('iot-seggregator')
 logging.basicConfig(level=logging.DEBUG)
 
 container_map = {
-					"Blue": 1,
-					"Green": 2,
-					"Red": 3,
-					"Yellow": 4
-				}
+    "Blue": 1,
+    "Green": 2,
+    "Red": 3,
+    "Yellow": 4
+}
+
 
 @csrf_exempt
 @api_view(["POST"])
@@ -82,25 +83,25 @@ def process_image(request):
 
 
 def insert_records(database, table, detected_color):
-	return_flag = True
-	cnx = mysql.connector.connect(
-			host = "inventory-records.c6xbsgoq927m.us-east-1.rds.amazonaws.com",
-			database = database,
-			user = "admin",
-			password = "IoT-Seggregator")
+    return_flag = True
+    cnx = mysql.connector.connect(
+        host="inventory-records.c6xbsgoq927m.us-east-1.rds.amazonaws.com",
+        database=database,
+        user="admin",
+        password="IoT-Seggregator")
 
-	cursor = cnx.cursor()
-	ts = time.time()
-	timestamp = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
-	logger.info(f'timestamp of the identified image {timestamp}')
-	try:
-		query_builder = "INSERT INTO {} (time, container_id, count)  VALUES (\"{}\", {}, {});".format(table, timestamp, container_map[detected_color] , 1)
-		logger.info(f"insert query - {query_builder}")
+    cursor = cnx.cursor()
+    ts = time.time()
+    timestamp = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
+    logger.info(f'timestamp of the identified image {timestamp}')
+    try:
+        query_builder = f"INSERT INTO {table} (time, container_id, count)  VALUES (\"{timestamp}\", {container_map[detected_color]}, {1});"
+        logger.info(f"insert query - {query_builder}")
         cursor.execute(query_builder)
         cnx.commit()
-	except:
-		logger.error(f"rolling back the query - {sys.exc_info()}")
-		cnx.rollback()
-		return_flag = False
-	cnx.close()
-	return return_flag
+    except:
+        logger.error(f"rolling back the query - {sys.exc_info()}")
+        cnx.rollback()
+        return_flag = False
+    cnx.close()
+    return return_flag
