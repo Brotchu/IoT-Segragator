@@ -76,19 +76,20 @@ def process_image(request):
     detected_color = max(color, key=color.get)
     logger.info(f"The box is {detected_color}")
     flag = insert_records(db_name, table_name, detected_color)
-    response_body = {'status code': HTTP_200_OK,
-                     'body': detected_color,
-                     }
-    return Response(response_body, status=HTTP_200_OK)
+    return Response(detected_color, status=HTTP_200_OK) 
 
 
-def insert_records(database, table, detected_color):
+
+
+def insert_records(db_name, table, detected_color):
     return_flag = True
+    print(db_name, table)
     cnx = mysql.connector.connect(
-        host="inventory-records.c6xbsgoq927m.us-east-1.rds.amazonaws.com",
-        database=database,
-        user="admin",
-        password="IoT-Seggregator")
+            host = "inventory-records.c6xbsgoq927m.us-east-1.rds.amazonaws.com",
+            database = db_name,
+            user = "admin",
+            password = "IoT-Segragator")
+
 
     cursor = cnx.cursor()
     ts = time.time()
