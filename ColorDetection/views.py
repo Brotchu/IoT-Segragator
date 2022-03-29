@@ -9,17 +9,30 @@ import io
 import cv2
 import numpy as np
 from PIL import Image
+import mysql.connector
+from mysql.connector import errorcode
+from sqlalchemy import create_engine
+import time, sys
+import datetime
 
 # Create your views here.
 
 logger = logging.getLogger('iot-seggregator')
 logging.basicConfig(level=logging.DEBUG)
 
+container_map = {
+					"Blue": 1,
+					"Green": 2,
+					"Red": 3,
+					"Yellow": 4
+				}
 
 @csrf_exempt
 @api_view(["POST"])
 def process_image(request):
     # logger.debug(f"received body : {request.body}")
+    db_name = "sorting_inventory"
+    table_name = "packages_inventory"
     img = Image.open(io.BytesIO(request.body))
     arr_img = np.asarray(img)
     rgb_img = cv2.cvtColor(arr_img, cv2.COLOR_BGR2HSV)
@@ -61,7 +74,33 @@ def process_image(request):
     logger.info(color)
     detected_color = max(color, key=color.get)
     logger.info(f"The box is {detected_color}")
+    flag = insert_records(db_name, table_name, detected_color)
     response_body = {'status code': HTTP_200_OK,
                      'body': detected_color,
                      }
     return Response(response_body, status=HTTP_200_OK)
+
+
+def insert_records(database, table, detected_color):
+	return_flag = True
+	cnx = mysql.connector.connect(
+			host = "inventory-records.c6xbsgoq927m.us-east-1.rds.amazonaws.com",
+			database = database,
+			user = "admin",
+			password = "IoT-Seggregator")
+
+	cursor = cnx.cursor()
+	ts = time.time()
+	timestamp = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
+	logger.info(f'timestamp of the identified image {timestamp}')
+	try:
+		query_builder = "INSERT INTO {} (time, container_id, count)  VALUES (\"{}\", {}, {});".format(table, timestamp, container_map[detected_color] , 1)
+		logger.info(f"insert query - {query_builder}")
+        cursor.execute(query_builder)
+        cnx.commit()
+	except:
+		logger.error(f"rolling back the query - {sys.exc_info()}")
+		cnx.rollback()
+		return_flag = False
+	cnx.close()
+	return return_flag
