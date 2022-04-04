@@ -6,7 +6,7 @@ from rest_framework.status import (
     HTTP_200_OK)
 import logging
 import io
-import cv2
+# import cv2
 import numpy as np
 from PIL import Image
 import mysql.connector
@@ -21,10 +21,9 @@ logger = logging.getLogger('iot-seggregator')
 logging.basicConfig(level=logging.DEBUG)
 
 container_map = {
-    "Blue": 1,
-    "Green": 2,
-    "Red": 3,
-    "Yellow": 4
+    1: "Blue",
+    2: "Green",
+    3: "Red"
 }
 
 
@@ -36,49 +35,15 @@ def process_image(request):
     table_name = "packages_inventory"
     img = Image.open(io.BytesIO(request.body))
     arr_img = np.asarray(img)
-    rgb_img = cv2.cvtColor(arr_img, cv2.COLOR_BGR2HSV)
-    color = {}
-    # RED COLOR RANGE
-    lower_red = np.array([0, 100, 100])
-    upper_red = np.array([7, 255, 255])
+    
+    # Detect RGB Color
+    avg = np.mean(arr_img, axis=1)
+    avg = np.mean(avg, axis=0)
+    detected_color = avg.argmax() + 1
 
-    # YELLOW COLOR RANGE
-    lower_yellow = np.array([25, 100, 100])
-    upper_yellow = np.array([30, 255, 255])
-
-    # GREEN COLOR RANGE
-    lower_green = np.array([40, 70, 80])
-    upper_green = np.array([70, 255, 255])
-
-    # BLUE COLOR RANGE
-    lower_blue = np.array([90, 60, 0])
-    upper_blue = np.array([121, 255, 255])
-
-    # THRESHILD
-    red = cv2.inRange(rgb_img, lower_red, upper_red)
-    green = cv2.inRange(rgb_img, lower_green, upper_green)
-    blue = cv2.inRange(rgb_img, lower_blue, upper_blue)
-    yellow = cv2.inRange(rgb_img, lower_yellow, upper_yellow)
-
-    # COUNT NUMBER OF WHITE PIXEL
-    count_red = np.sum(np.nonzero(red))
-    count_green = np.sum(np.nonzero(green))
-    count_blue = np.sum(np.nonzero(blue))
-    count_yellow = np.sum(np.nonzero(yellow))
-
-    # ADD RESULTS TO DICTIONARY
-    color["Red"] = count_red
-    color["Green"] = count_green
-    color["Blue"] = count_blue
-    color["Yellow"] = count_yellow
-
-    logger.info(color)
-    detected_color = max(color, key=color.get)
     logger.info(f"The box is {detected_color}")
     flag = insert_records(db_name, table_name, detected_color)
     return Response(detected_color, status=HTTP_200_OK) 
-
-
 
 
 def insert_records(db_name, table, detected_color):
