@@ -21,9 +21,9 @@ logger = logging.getLogger('iot-seggregator')
 logging.basicConfig(level=logging.DEBUG)
 
 container_map = {
-    1: "Blue",
+    1: "Red",
     2: "Green",
-    3: "Red"
+    3: "Blue"
 }
 
 
