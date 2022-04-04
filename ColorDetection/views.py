@@ -24,12 +24,10 @@ logger = logging.getLogger('iot-seggregator')
 logging.basicConfig(level=logging.DEBUG)
 
 container_map = {
-    "Blue": 1,
-    "Green": 2,
-    "Red": 3,
-    "Yellow": 4
+    1: "Blue",
+    2: "Green",
+    3: "Red"
 }
-
 
 def get_image(img):
     arr_img = np.asarray(img)
