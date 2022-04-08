@@ -21,34 +21,36 @@ logger = logging.getLogger('iot-seggregator')
 logging.basicConfig(level=logging.DEBUG)
 
 container_map = {
-    1: "Red",
-    2: "Green",
-    3: "Blue"
+    1: ["Red", "\x1b[31;20m"],
+    2: [ "Green", "\x1b[32m"],
+    3: ["Blue", "\x1b[32m"]
 }
 
+bold_red = "\x1b[31;1m"
+reset = "\x1b[0m"
 
 @csrf_exempt
 @api_view(["POST"])
 def process_image(request):
-    # logger.debug(f"received body : {request.body}")
     db_name = "sorting_inventory"
     table_name = "packages_inventory"
     img = Image.open(io.BytesIO(request.body))
     arr_img = np.asarray(img)
-    
+    logger.info(f"request meta - {request.META.get('REMOTE_ADDR')}") 
     # Detect RGB Color
     avg = np.mean(arr_img, axis=1)
     avg = np.mean(avg, axis=0)
+    logger.info(f"detected rgb - {avg}")
     detected_color = avg.argmax() + 1
-
-    logger.info(f"The box is {detected_color}")
+    colorcode = container_map[detected_color][1]
+    logger.info(f"The box is {colorcode} {container_map[detected_color][0]} {reset}")
     flag = insert_records(db_name, table_name, detected_color)
     return Response(detected_color, status=HTTP_200_OK) 
 
 
 def insert_records(db_name, table, detected_color):
     return_flag = True
-    print(db_name, table)
+    logger.info(db_name, table)
     cnx = mysql.connector.connect(
             host = "inventory-records.c6xbsgoq927m.us-east-1.rds.amazonaws.com",
             database = db_name,
@@ -61,7 +63,7 @@ def insert_records(db_name, table, detected_color):
     timestamp = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
     logger.info(f'timestamp of the identified image {timestamp}')
     try:
-        query_builder = f"INSERT INTO {table} (time, container_id, count)  VALUES (\"{timestamp}\", {container_map[detected_color]}, {1});"
+        query_builder = f"INSERT INTO {table} (time, container_id, count)  VALUES (\"{timestamp}\", {detected_color}, {1});"
         logger.info(f"insert query - {query_builder}")
         cursor.execute(query_builder)
         cnx.commit()
