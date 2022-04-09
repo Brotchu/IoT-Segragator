@@ -1,0 +1,4 @@
+{
+    "idf.adapterTargetName": "esp32s2",
+    "idf.port": "/dev/ttyUSB1"
+}
